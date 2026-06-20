@@ -1,4 +1,6 @@
+import os
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.db.database import (
     engine,
@@ -14,6 +16,10 @@ Base.metadata.create_all(
 app = FastAPI(
     title="Vizzy Chat API"
 )
+
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "..", "static")
+os.makedirs(os.path.join(STATIC_DIR, "generated"), exist_ok=True)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 app.include_router(
     router,

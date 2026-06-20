@@ -1,22 +1,43 @@
 from mistralai import Mistral
 from dotenv import load_dotenv
 import os
+import uuid
+from huggingface_hub import InferenceClient
 
 load_dotenv()
 
 client = Mistral(api_key=os.getenv("MISTRAL_API_KEY"))
 
+HF_API_KEY = os.getenv("HF_API_KEY")
+hf_client = InferenceClient(
+    provider="hf-inference",
+    api_key=HF_API_KEY,
+)
+
+BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
+
+STATIC_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+    "static", "generated"
+)
+os.makedirs(STATIC_DIR, exist_ok=True)
+
 
 def generate_image(prompt: str) -> str:
-    safe_prompt = (
-        prompt[:40]
-        .replace(" ", "+")
+    """
+    Generate a real AI image using Hugging Face Inference Providers
+    (FLUX.1-schnell). Saves locally and returns a servable URL.
+    """
+    image = hf_client.text_to_image(
+        prompt,
+        model="black-forest-labs/FLUX.1-schnell",
     )
-    return (
-        f"https://dummyimage.com/"
-        f"1024x1024/000/fff"
-        f"&text={safe_prompt}"
-    )
+
+    filename = f"{uuid.uuid4().hex}.png"
+    filepath = os.path.join(STATIC_DIR, filename)
+    image.save(filepath)
+
+    return f"{BASE_URL}/static/generated/{filename}"
 
 
 def refine_prompt(
